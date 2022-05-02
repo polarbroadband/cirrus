@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: godev-storage
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 20
+  accessModes:
+    - ReadWriteOnce
+  claimRef:
+    namespace: default
+    name: godev-storage-claim
+  gcePersistentDisk:
+    pdName: dev-src
+    fsType: ext4
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: godev-storage-claim
+spec:
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev
+  labels:
+    app: godev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: godev
+  template:
+    metadata:
+      labels:
+        app: godev
+    spec:
+      volumes:
+        - name: srccode-storage
+          persistentVolumeClaim:
+            claimName: godev-storage-claim
+      containers:
+      - name: godev
+        image: polarbroadband/godev:0.1
+        imagePullPolicy: Always
+        command: ["/bin/sh","-c"]
+        args: ["service ssh start; tail -f /dev/null"]
+        volumeMounts:
+          - mountPath: "/home/dev/projects"
+            name: srccode-storage
+        ports:
+        - name: greeting-server
+          containerPort: 8089
+        - name: https
+          containerPort: 443
+        - name: ssh
+          containerPort: 22
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: godev-svc
+  labels:
+    app: godev
+spec:
+  type: LoadBalancer
+  selector:
+    app: godev
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: greeting-server
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: https
+  - name: ssh
+    protocol: TCP
+    port: 22
+    targetPort: ssh

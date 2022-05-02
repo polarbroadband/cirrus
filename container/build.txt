@@ -1,0 +1,18 @@
+docker build --force-rm -t polarbroadband/godev:0.1 .
+
+docker login -u polarbroadband -p cbc11ee0-e693-474d-a575-144b46989eb7
+
+docker push polarbroadband/godev:0.1
+
+kubectl apply -f c:\Users\polar\Projects\cirrus\kubernetes-manifests\dev.yaml
+kubectl get pods
+kubectl get svc -o wide
+
+kubectl delete deployment dev
+
+cat <<EOF | kubectl apply -f -
+
+...
+EOF
+
+kubectl rollout restart deployment dev
